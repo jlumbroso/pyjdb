@@ -1,3 +1,10 @@
+# macOS metadata
+.DS_Store
+
+# Sandbox
+sandbox/
+Sandbox*.ipynb
+
 # Byte-compiled Java
 *.class
 
