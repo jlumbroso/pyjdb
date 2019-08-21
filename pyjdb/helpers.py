@@ -1,5 +1,3 @@
-import csv as _csv
-import itertools as _itertools
 import re as _re
 import subprocess as _subprocess
 import typing as _typ
@@ -67,16 +65,13 @@ def parse_jdb_version() -> _typ.Optional[str]:
     """
     try:
         version_str = _subprocess.run(
-            [JDB_NAME, JDB_VERSION_FLAG],
-            stdout=_subprocess.PIPE
+            [JDB_NAME, JDB_VERSION_FLAG], stdout=_subprocess.PIPE
         ).stdout.decode("utf-8")
 
     except FileNotFoundError:
         return None
 
-    version = head(filter_regexp(
-        regexp=REGEXP_PATT_VERSION,
-        lst=version_str.split()))
+    version = head(filter_regexp(regexp=REGEXP_PATT_VERSION, lst=version_str.split()))
 
     return version
 
@@ -151,7 +146,7 @@ def parse_jdb_values(text: str) -> _typ.Dict[str, _typ.Any]:
     :return: A dictionary of parsed variables.
     """
     # Remove /r
-    text = text.replace('\r\n', '\n')
+    text = text.replace("\r\n", "\n")
 
     # Strip trailing spaces
     text = text.strip()
@@ -162,10 +157,10 @@ def parse_jdb_values(text: str) -> _typ.Dict[str, _typ.Any]:
     # Parse each line
     variables = []
     for line in lines:
-        if '=' not in line:
+        if "=" not in line:
             continue
 
-        parts = line.split(sep='=', maxsplit=1)
+        parts = line.split(sep="=", maxsplit=1)
         name = parts[0].strip()
         value = parts[1].strip()
 
@@ -178,7 +173,3 @@ def parse_jdb_values(text: str) -> _typ.Dict[str, _typ.Any]:
     variables_dict = dict(variables)
 
     return variables_dict
-
-
-
-

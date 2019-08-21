@@ -1,13 +1,11 @@
-
 import typing as _typ
-
-from . import helpers as _helpers
 
 import pexpect as _pexpect
 
+from . import helpers as _helpers
+
 
 class JdbProcess(object):
-
     def __init__(self, class_name, class_path=None, entry_method="main"):
         self.pty = None
         self.class_name = class_name
@@ -66,8 +64,9 @@ class JdbProcess(object):
 
         self.pty.sendline(
             "stop in {class_name}.{entry_method}".format(
-                class_name=self.class_name,
-                entry_method=self.entry_method))
+                class_name=self.class_name, entry_method=self.entry_method
+            )
+        )
 
         self.pty.expect(".*Deferring breakpoint.*")
         self.pty.sendline("run")
@@ -88,8 +87,9 @@ class JdbProcess(object):
         # Make a step
         self.pty.sendline("step{}".format(modifier))
 
-    def locals(self) -> _typ.Optional[_typ.Tuple[_typ.Dict[str, _typ.Any],
-                                                 _typ.Dict[str, _typ.Any]]]:
+    def locals(
+        self
+    ) -> _typ.Optional[_typ.Tuple[_typ.Dict[str, _typ.Any], _typ.Dict[str, _typ.Any]]]:
         """
 
         :return:
@@ -138,9 +138,7 @@ class JdbProcess(object):
         self.pty.sendline("dump {}".format(obj))
 
         # Expect output
-        pattern = "{obj} = .*{prompt}".format(
-            obj=obj,
-            prompt=esc_prompt)
+        pattern = "{obj} = .*{prompt}".format(obj=obj, prompt=esc_prompt)
         self.pty.expect(pattern)
 
         # Parse output
@@ -157,4 +155,3 @@ class JdbProcess(object):
         parsed_ret = _helpers.parse_jdb_value(ret)
 
         return parsed_ret
-
