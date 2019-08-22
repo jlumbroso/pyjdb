@@ -9,7 +9,7 @@ public class IterPower {
     public static void main(String[] args) {
         // ... parse arguments ...
         System.out.println(iterPower(base, exp));
-	}
+    }
 
     public static int iterPower(int base, int exp) {
         int result = 1;
