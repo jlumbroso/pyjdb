@@ -68,6 +68,12 @@ class JdbProcess(object):
             )
         )
 
+        # Tracing information
+        # - exclude standard library from events
+        self.pty.sendline("exclude java.*,javax.*,sun.*,com.sun.*,jdk.*,")
+        # - provide information on methods being entered, exited (and return value)
+        self.pty.sendline("trace methods 1")
+
         self.pty.expect(".*Deferring breakpoint.*")
         self.pty.sendline("run")
         self.pty.expect(".*Breakpoint hit:")
