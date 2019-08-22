@@ -50,7 +50,7 @@ while True:
         variables[var].append(val)
 
 variables_unique_values = {
-    var: set(vals) for (var, vals) in variables.items()
+    var: list(set(vals)) for (var, vals) in variables.items()
 }
 
 print(variables_unique_values)
@@ -58,9 +58,9 @@ print(variables_unique_values)
 The snippet will output a trace of the variable values of this program through its execution:
 ```json
 {"args": {"instance of java.lang.String[0] (id=495)"},
- "base": {10},
- "exp": {0, 1, 2, 3, 4},
- "result": {1, 10, 100, 1000, 10000}}
+ "base": [10],
+ "exp": [0, 1, 2, 3, 4],
+ "result": [1, 10, 100, 1000, 10000]}
 ```
 
 ## Inspiration
