@@ -11,27 +11,27 @@
 
 
 public class IterPower {
-	public static void main(String[] args) {
-	    // Default values
-	    int base = 10;
-	    int exp = 4;
+    public static void main(String[] args) {
+        // Default values
+        int base = 10;
+        int exp = 4;
 
         // Parse command-line arguments
-	    if (args.length > 0)
-	        base = Integer.parseInt(args[0]);
-	    if (args.length > 1)
-	        exp = Integer.parseInt(args[1]);
+        if (args.length > 0)
+            base = Integer.parseInt(args[0]);
+        if (args.length > 1)
+            exp = Integer.parseInt(args[1]);
 
         // Call the function
-		System.out.println(iterPower(base, exp));
-	}
+        System.out.println(iterPower(base, exp));
+    }
 
-	public static int iterPower(int base, int exp) {
-		int result = 1;
-		while (exp > 0) {
-			result *= base;
-			exp -= 1;
-		}
-		return result;
-	}
+    public static int iterPower(int base, int exp) {
+        int result = 1;
+        while (exp > 0) {
+            result *= base;
+            exp -= 1;
+        }
+        return result;
+    }
 }

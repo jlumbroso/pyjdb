@@ -6,19 +6,19 @@ Python interface with Java debugger through JDB.
 Let's assume that we have this Java file, `IterPower.java`:
 ```java
 public class IterPower {
-	public static void main(String[] args) {
-	    // ... parse arguments ...
-		System.out.println(iterPower(base, exp));
+    public static void main(String[] args) {
+        // ... parse arguments ...
+        System.out.println(iterPower(base, exp));
 	}
 
-	public static int iterPower(int base, int exp) {
-		int result = 1;
-		while (exp > 0) {
-			result *= base;
-			exp -= 1;
-		}
-		return result;
-	}
+    public static int iterPower(int base, int exp) {
+        int result = 1;
+        while (exp > 0) {
+            result *= base;
+            exp -= 1;
+        }
+        return result;
+    }
 }
 ```
 which has been compiled with debugging information, `javac -g IterPower.java`. The following is a Python snippet:
