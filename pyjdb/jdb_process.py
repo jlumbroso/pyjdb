@@ -11,6 +11,8 @@ class JdbProcess(object):
         self.class_name = class_name
         self.class_path = class_path
         self.entry_method = entry_method
+        self.trace = None
+        self.trace_max = 10000
 
     @property
     def active(self) -> bool:
@@ -68,20 +70,38 @@ class JdbProcess(object):
             )
         )
 
-        # Tracing information
+        self.pty.expect(".*Deferring breakpoint.*")
+        self.pty.sendline("run")
+        self.pty.expect(".*Breakpoint hit:")
+
+        # Activate precise tracing information:
         # - exclude standard library from events
         self.pty.sendline("exclude java.*,javax.*,sun.*,com.sun.*,jdk.*,")
         # - provide information on methods being entered, exited (and return value)
         self.pty.sendline("trace methods 1")
 
-        self.pty.expect(".*Deferring breakpoint.*")
-        self.pty.sendline("run")
-        self.pty.expect(".*Breakpoint hit:")
-
         # Run dummy method to clear
         self.locals()
 
-    def step(self, modifier=" in") -> _typ.NoReturn:
+        # Reset trace
+        self._reset_trace_history()
+
+    def _reset_trace_history(self) -> _typ.NoReturn:
+        self.trace = list()
+
+    def _append_trace_history(self, info: _typ.Mapping) -> _typ.NoReturn:
+        if self.trace is None:
+            self._reset_trace_history()
+
+        # Add the info to the list
+        self.trace.append(info)
+
+        # Cull the excess frames
+        if self.trace_max is not None and self.trace_max > 0:
+            if len(self.trace) > self.trace_max:
+                self.trace = self.trace[-self.trace_max:]
+
+    def step(self, modifier=" in") -> _typ.Dict[str, _typ.Any]:
         """
 
         :return:
@@ -92,6 +112,24 @@ class JdbProcess(object):
 
         # Make a step
         self.pty.sendline("step{}".format(modifier))
+
+        # Collect location
+        self.pty.expect(r"(Step completed:|Method exited: [^,]+, )[^\r\n]+\r\n[^\r\n]+\r\n")
+
+        info = _helpers.parse_jdb_step(self.pty.after)
+
+        # Detect if method was just called and fill calling information if so
+        if "Method entered" in self.pty.before:
+            loc = self.locals()
+
+            if loc is not None:
+                args, _ = loc
+                info["call"] = args
+
+        # Add to record
+        self._append_trace_history(info)
+
+        return info
 
     def locals(
         self

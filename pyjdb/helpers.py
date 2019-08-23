@@ -5,10 +5,25 @@ import typing as _typ
 
 JDB_NAME = "jdb"
 JDB_VERSION_FLAG = "-version"
+
 REGEXP_PATT_VERSION = r"^[0-9]+(\.[0-9]+(\.[0-9]+)?)?$"
 REGEXP_PATT_CSV = r"\".*?\"|'.*?'|[^,]+"
 
+# See below for information on string patterns of jdb output
+# https://github.com/openjdk/jdk/blob/master/src/jdk.jdi/share/classes/com/sun/tools/example/debug/tty/TTYResources.java
+
+REGEXP_PATT_STEP_COMPLETED = (r"(Step completed:|Method exited: return value = ([^,]+),) "
+                              "\"thread=([^\"]*)\", "
+                              r"([^.]+(\.[^.]+)?\(\)), "
+                              r"line=([0-9]+) bci=([0-9]+)")
+
+REGEXP_PATT_LINE_LISTING = r"\n([0-9]+)\s+([^\r\n]+)\r\n"
+
+# Compiled regular expressions
+
 REGEXP_CSV = _re.compile(REGEXP_PATT_CSV)
+REGEXP_STEP_COMPLETED = _re.compile(REGEXP_PATT_STEP_COMPLETED)
+REGEXP_LINE_LISTING = _re.compile(REGEXP_PATT_LINE_LISTING)
 
 
 def make_matcher(regexp: str) -> _typ.Callable[[str], bool]:
@@ -42,10 +57,19 @@ def filter_regexp(regexp: str, lst: _typ.Iterator[str]) -> _typ.Iterator[str]:
     return filter(make_matcher(regexp), lst)
 
 
-def head(it: _typ.Iterator) -> _typ.Optional[_typ.Any]:
+def head(it: _typ.Iterable) -> _typ.Optional[_typ.Any]:
+    # Convert list to iterator if necessary
+    try:
+        new_it = (x for x in it)
+        it = new_it
+    except:
+        raise
+
+    # Try to get next element of iterator
     try:
         return it.__next__()
     except AttributeError:
+        raise
         # NoneType provided
         return None
     except NameError:
@@ -89,6 +113,10 @@ def parse_jdb_value(value: str) -> _typ.Any:
     # Assume we are dealing with a string that can be sliced/diced
     if type(value) is not str:
         return value
+
+    # Void value
+    if value == "<void value>":
+        return None
 
     # Objects should not be modified for the moment
     # NOTE: Could expand arrays (or simple types of arrays)
@@ -173,3 +201,48 @@ def parse_jdb_values(text: str) -> _typ.Dict[str, _typ.Any]:
     variables_dict = dict(variables)
 
     return variables_dict
+
+
+def parse_jdb_step(text: str) -> _typ.Dict[str, _typ.Any]:
+    """
+
+    :param text:
+    :return:
+    """
+    info = {}
+
+    # Use regular expressions to parse data
+    res_location = head(REGEXP_STEP_COMPLETED.findall(text))
+    res_line = head(REGEXP_LINE_LISTING.findall(text))
+
+    # Complete metadata accordingly
+    if res_location is not None:
+        # (title, return, thread, Class.method(), .method, line, bci)
+
+        # Return values because we have "trace methods 1"
+        if res_location[1] != "":
+            info["return"] = parse_jdb_value(res_location[1])
+
+        info["thread"] = res_location[2]
+        info["class.method"] = res_location[3]
+        info["method"] = res_location[4][1:]
+        info["line"] = res_location[5]
+        info["bci"] = res_location[6]
+
+    if res_line is not None:
+        info["line"] = res_line[0]
+        info["instruction"] = res_line[1]
+
+    # Parse values
+    try:
+        if "line" in info:
+            info["line"] = int(info["line"])
+        if "bci" in info:
+            info["bci"] = int(info["bci"])
+        if "return" in info:
+            info["return"] = parse_jdb_value(info["return"])
+    except ValueError:
+        pass
+
+
+    return info
