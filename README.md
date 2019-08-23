@@ -1,6 +1,28 @@
 # pyjdb
 Python interface with Java debugger through JDB.
 
+## Overview
+
+The `JdbProcess` uses `pexpect` to attach to a `jdb` process and record all the information that is obtained.
+
+For each instruction, we record a dictionary of the following format:
+```json
+{
+  'return': 10000,
+  'thread': 'main',
+  'class.method': 'IterPower.iterPower()',
+  'method': 'iterPower',
+  'line': 15,
+  'bci': 17,
+  'instruction': 'return result;',
+}
+```
+For each instruction, we can also obtain the dictionary of the current method's arguments, as well as all its local variables:
+```python
+({'base': 10, 'exp': 0}, {'result': 10000})
+```
+
+
 ## Example
 
 Let's assume that we have this Java file, `IterPower.java`:
@@ -57,12 +79,12 @@ print(variables_unique_values)
 ```
 The snippet will output a trace of the variable values of this program through its execution:
 ```json
-{"args": {"instance of java.lang.String[0] (id=495)"},
+{"args": ["instance of java.lang.String[0] (id=495)"],
  "base": [10],
  "exp": [0, 1, 2, 3, 4],
  "result": [1, 10, 100, 1000, 10000]}
 ```
-
+{'base': [10], 'exp': [0, 1, 2, 3, 4], 'result': [1, 100, 1000, 10, 10000], 'args': ['instance of java.lang.String[2] (id=495)']}
 ## Inspiration
 
 This project was inspired by a [talk by Elena Glassman](https://youtu.be/Pt-DMk1YRJ4) in which she shows how to cluster [different implementations of the same solution](http://eglassman.github.io/mit-phd-thesis/thesis-slides.html#/10) according to the trace of the internal variables. Her work, which includes [OverCode](http://eglassman.github.io/overcode/) and [foobaz](https://www.youtube.com/watch?v=4X94_2XEsrE), focuses on Python programs. At my home institution, we use Java in our introductory classes. The initial goal of this project was to apply Dr. Glassman's techniques to Java assignments.
