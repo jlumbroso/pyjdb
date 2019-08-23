@@ -8,13 +8,13 @@ The `JdbProcess` uses `pexpect` to attach to a `jdb` process and record all the 
 For each instruction, we record a dictionary of the following format:
 ```json
 {
-  'return': 10000,
-  'thread': 'main',
-  'class.method': 'IterPower.iterPower()',
-  'method': 'iterPower',
-  'line': 15,
-  'bci': 17,
-  'instruction': 'return result;',
+  "return": 10000,
+  "thread": "main",
+  "class.method": "IterPower.iterPower()",
+  "method": "iterPower",
+  "line": 15,
+  "bci": 17,
+  "instruction": "return result;"
 }
 ```
 For each instruction, we can also obtain the dictionary of the current method's arguments, as well as all its local variables:
