@@ -114,7 +114,7 @@ class JdbProcess(object):
         self.pty.sendline("step{}".format(modifier))
 
         # Collect location
-        self.pty.expect(r"(Step completed:|Method exited: [^,]+, )[^\r\n]+\r\n[^\r\n]+\r\n")
+        self.pty.expect(r"(Step completed:|Method exited: [^,]+, )[^\r\n]+\r\n[^\r\n]*\r\n")
 
         info = _helpers.parse_jdb_step(self.pty.after)
 
@@ -146,10 +146,11 @@ class JdbProcess(object):
         self.pty.sendline("locals")
 
         # Expect the variables from method arguments
-        self.pty.expect("Method arguments:")
-
-        # Expect the variables locally declared
-        self.pty.expect("Local variables:")
+        #self.pty.expect("Method arguments:")
+        #
+        ## Expect the variables locally declared
+        #self.pty.expect("Local variables:")
+        self.pty.expect("(No local variables|Method arguments:.*Local variables:)")
 
         raw_str_args = self.pty.before
 
