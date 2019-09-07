@@ -6,15 +6,20 @@ import typing as _typ
 JDB_NAME = "jdb"
 JDB_VERSION_FLAG = "-version"
 
+JDB_DEFAULT_EXCLUDED = ["java.*","javax.*","sun.*","com.sun.*","jdk.*"]
+
+JAVA_DEBUG_CMD = "java -Xdebug -Xrunjdwp:transport=dt_socket,address={port},server=y,suspend=y"
+
 REGEXP_PATT_VERSION = r"^[0-9]+(\.[0-9]+(\.[0-9]+)?)?$"
 REGEXP_PATT_CSV = r"\".*?\"|'.*?'|[^,]+"
 
 # See below for information on string patterns of jdb output
 # https://github.com/openjdk/jdk/blob/master/src/jdk.jdi/share/classes/com/sun/tools/example/debug/tty/TTYResources.java
 
-REGEXP_PATT_STEP_COMPLETED = (r"(Step completed:|Method exited: return value = ([^,]+),) "
-                              "\"thread=([^\"]*)\", "
-                              r"([^.]+(\.[^.]+)?\(\)), "
+REGEXP_PATT_STEP_COMPLETED = (r"(Step completed:|Method entered:|"
+                              r"Method exited: return value = ([^,]+),) "
+                              r"\"thread=([^\"]*)\", "
+                              r"([^.]+(\.[^.]+)+\(\)), "
                               r"line=([0-9]+) bci=([0-9]+)")
 
 REGEXP_PATT_LINE_LISTING = r"\n([0-9]+)\s+([^\r\n]+)\r\n"

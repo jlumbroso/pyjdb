@@ -1,3 +1,5 @@
+# -*- coding: iso-8859-1 -*-
+
 import os
 from setuptools import setup, find_packages
 
@@ -23,7 +25,7 @@ setup(
     long_description=README,
     long_description_content_type="text/markdown",
     url="https://github.com/jlumbroso/pyjdb",
-    author="JÃ©rÃ©mie Lumbroso",
+    author="Jérémie Lumbroso",
     author_email="lumbroso@cs.princeton.edu",
     license="LGPL3",
     classifiers=[

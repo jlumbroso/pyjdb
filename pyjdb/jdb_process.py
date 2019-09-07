@@ -6,13 +6,15 @@ from . import helpers as _helpers
 
 
 class JdbProcess(object):
-    def __init__(self, class_name, class_path=None, entry_method="main"):
+    def __init__(self, class_name, class_path=None, entry_method="main", exclude_classes=None):
         self.pty = None
+        self.target = None
         self.class_name = class_name
         self.class_path = class_path
         self.entry_method = entry_method
         self.trace = None
         self.trace_max = 10000
+        self.exclude_classes = exclude_classes
 
     @property
     def active(self) -> bool:
@@ -25,7 +27,78 @@ class JdbProcess(object):
 
         return not (self.pty is None or self.pty.closed or self.pty.eof())
 
-    def _build_jdb_call(self, args: _typ.Optional[_typ.AnyStr] = None) -> str:
+    def _build_call_base(
+            self,
+            args: _typ.Optional[_typ.Union[_typ.AnyStr, list]] = None,
+            launch_class: bool = True,
+            base_name: _typ.Union[str, _typ.List[str]] = _helpers.JDB_NAME
+    ) -> str:
+
+        # The command name
+        if type(base_name) is list:
+            cmd = base_name[:]
+        else:
+            cmd = [base_name]
+
+        if launch_class:
+            # Build the classpath
+            if self.class_path is not None:
+                cmd.append("-classpath")
+
+                if type(self.class_path) is list:
+                    # Specified as list
+                    cp = self.class_path[:]
+                    if "." not in cp:
+                        cp = ["."] + cp
+                    cmd.append(":".join(cp))
+                else:
+                    # Specified as str
+                    cp = self.class_path[:]
+                    if not (".:" in cp or ":." in cp):
+                        cp = ".:{}".format(cp)
+                    cmd.append(cp)
+
+            # The class name
+            cmd.append(self.class_name)
+
+        # Optional args
+        if args is not None and args != "":
+            if type(args) is list:
+                cmd += args
+            else:
+                cmd.append(args)
+
+        return " ".join(cmd)
+
+    def _build_jdb_call(
+            self,
+            args: _typ.Optional[_typ.AnyStr] = None,
+            port: _typ.Optional[int] = None
+    ) -> str:
+        """
+
+        :param args:
+        :return:
+        """
+
+        if port is not None:
+            return self._build_call_base(
+                args=["-attach", "{}".format(port)],
+                base_name=_helpers.JDB_NAME,
+                launch_class=False,
+            )
+        else:
+            return self._build_call_base(
+                args=args,
+                base_name=_helpers.JDB_NAME,
+                launch_class=True,
+            )
+
+    def _build_java_call(
+            self,
+            port: int,
+            args: _typ.Optional[_typ.AnyStr] = None,
+    ) -> str:
         """
 
         :param args:
@@ -33,23 +106,15 @@ class JdbProcess(object):
         """
 
         # The command name
-        cmd = [_helpers.JDB_NAME]
+        base_cmd = _helpers.JAVA_DEBUG_CMD.format(port=port).split()
 
-        # The classpath
-        if self.class_path is not None:
-            cmd.append("-classpath")
-            cmd.append(":".join(self.class_path))
+        return self._build_call_base(
+            args=args,
+            base_name=base_cmd,
+            launch_class=True,
+        )
 
-        # The class name
-        cmd.append(self.class_name)
-
-        # Optional args
-        if args is not None and args != "":
-            cmd.append(args)
-
-        return " ".join(cmd)
-
-    def spawn(self, args: _typ.Optional[str] = None) -> _typ.NoReturn:
+    def spawn(self, args: _typ.Optional[str] = None, capture_target=False) -> _typ.NoReturn:
         """
 
         :param args:
@@ -62,7 +127,27 @@ class JdbProcess(object):
         except:
             pass
 
-        self.pty = _pexpect.spawnu(self._build_jdb_call(args=args))
+        # noinspection PyBroadException
+        try:
+            self.target.close()
+        except:
+            pass
+        finally:
+            self.target = None
+
+        if capture_target:
+            # Pick a port
+            port = 8899
+
+            # Launch the class separately on a port
+            self.target = _pexpect.spawnu(self._build_java_call(args=args, port=port))
+            self.target.expect("Listening[^:]*: \d+")
+
+            # Connect JDB
+            self.pty = _pexpect.spawnu(self._build_jdb_call(port=port))
+        else:
+            # Launch the class through JDB
+            self.pty = _pexpect.spawnu(self._build_jdb_call(args=args))
 
         self.pty.sendline(
             "stop in {class_name}.{entry_method}".format(
@@ -76,7 +161,10 @@ class JdbProcess(object):
 
         # Activate precise tracing information:
         # - exclude standard library from events
-        self.pty.sendline("exclude java.*,javax.*,sun.*,com.sun.*,jdk.*,")
+        exclude_list = _helpers.JDB_DEFAULT_EXCLUDED[:] + [""]
+        if self.exclude_classes is not None:
+            exclude_list = exclude_list + self.exclude_classes
+        self.pty.sendline("exclude {}".format(",".join(exclude_list)))
         # - provide information on methods being entered, exited (and return value)
         self.pty.sendline("trace methods 1")
 
@@ -85,6 +173,15 @@ class JdbProcess(object):
 
         # Reset trace
         self._reset_trace_history()
+
+    def target_send_line(self, line):
+        if self.target is not None:
+            size = self.target.sendline(line)
+            self.target.flush()
+            return size
+
+    def target_send_file(self, file_name):
+        return self.target_send_line(open(file_name).read())
 
     def _reset_trace_history(self) -> _typ.NoReturn:
         self.trace = list()
@@ -114,9 +211,12 @@ class JdbProcess(object):
         self.pty.sendline("step{}".format(modifier))
 
         # Collect location
-        self.pty.expect(r"(Step completed:|Method exited: [^,]+, )[^\r\n]+\r\n[^\r\n]*\r\n")
+        self.pty.expect(r"((Step completed:|Method entered:\r\nStep completed:|Method entered: )|Method exited: [^,]+, )[^\r\n]+\r\n([^\r\n]+\r\n)*")
 
         info = _helpers.parse_jdb_step(self.pty.after)
+        if len(info) == 0:
+            print("Error")
+            print(self.pty.after)
 
         # Detect if method was just called and fill calling information if so
         if "Method entered" in self.pty.before:
@@ -145,12 +245,27 @@ class JdbProcess(object):
         # Print out all local variables
         self.pty.sendline("locals")
 
-        # Expect the variables from method arguments
+        # ATTEMPT 1:
+        # # Expect the variables from method arguments
         #self.pty.expect("Method arguments:")
         #
-        ## Expect the variables locally declared
+        # # Expect the variables locally declared
         #self.pty.expect("Local variables:")
-        self.pty.expect("(No local variables|Method arguments:.*Local variables:)")
+
+        # ATTEMPT 2:
+        #self.pty.expect("(No local variables|.*ocal variable information not available.*|Method arguments:.*Local variables:)")
+
+        # ATTEMPT 3:
+        # Expect the variables from method arguments (or a message that we don't have
+        # debug information for this frame).
+        self.pty.expect(
+            "(No local variables[^\r\n]*|.*ocal variable "
+            "information not available[^\r\n]*|Method arguments:)")
+
+        # If there is debug information, which we detect by the presence of the message
+        # "Method", then also look for local variables.
+        if "Method" in self.pty.after:
+            self.pty.expect("Local variables:")
 
         raw_str_args = self.pty.before
 
