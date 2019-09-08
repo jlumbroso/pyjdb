@@ -157,12 +157,12 @@ class JdbProcessContextManager(object):
         # Compile files
         self.compile()
 
-        # Spawn the JDB process
+        # Spawn the JDB process (and make sure to capture stdin/stdout)
         self.jdb_process = _jdb_process.JdbProcess(
             self.class_name,
-            class_path=self.class_path
+            class_path=self.class_path,
         )
-        self.jdb_process.spawn(self.args)
+        self.jdb_process.spawn(self.args, capture_target=True)
 
         return self.jdb_process
 

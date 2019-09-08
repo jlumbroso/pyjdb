@@ -186,6 +186,11 @@ class JdbProcess(object):
             self.target.flush()
             return size
 
+        else:
+            raise RuntimeWarning(
+                "Attempting to write to JDB process "
+                "but did not spawn it with `capture_target=True`.")
+
     def target_send_file(self, file_name):
         return self.target_send_line(open(file_name).read())
 
