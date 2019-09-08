@@ -11,8 +11,7 @@ extract information about the execution of Java programs.
 License: Copyright (c) 2019 Jérémie Lumbroso, under LGPL3 license
 """
 # Documentation
-from codepost.version import __version__
 
-from .jdb_process import JdbProcess
+from pyjdb.core.jdb_process import JdbProcess
 
-from .exceptions import *
+from pyjdb.core.exceptions import *

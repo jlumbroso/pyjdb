@@ -2,8 +2,7 @@ import typing as _typ
 
 import pexpect as _pexpect
 
-from . import exceptions as _exceptions
-from . import helpers as _helpers
+from pyjdb.core import helpers as _helpers, exceptions as _exceptions
 
 
 class JdbProcess(object):
