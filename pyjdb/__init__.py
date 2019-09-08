@@ -12,6 +12,7 @@ License: Copyright (c) 2019 Jérémie Lumbroso, under LGPL3 license
 """
 # Documentation
 from codepost.version import __version__
-from pexpect import EOF
 
 from .jdb_process import JdbProcess
+
+from .exceptions import *

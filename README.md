@@ -84,7 +84,7 @@ The snippet will output a trace of the variable values of this program through i
  "exp": [0, 1, 2, 3, 4],
  "result": [1, 10, 100, 1000, 10000]}
 ```
-{'base': [10], 'exp': [0, 1, 2, 3, 4], 'result': [1, 100, 1000, 10, 10000], 'args': ['instance of java.lang.String[2] (id=495)']}
+
 ## Inspiration
 
 This project was inspired by a [talk by Elena Glassman](https://youtu.be/Pt-DMk1YRJ4) in which she shows how to cluster [different implementations of the same solution](http://eglassman.github.io/mit-phd-thesis/thesis-slides.html#/10) according to the trace of the internal variables. Her work, which includes [OverCode](http://eglassman.github.io/overcode/) and [foobaz](https://www.youtube.com/watch?v=4X94_2XEsrE), focuses on Python programs. At my home institution, we use Java in our introductory classes. The initial goal of this project was to apply Dr. Glassman's techniques to Java assignments.

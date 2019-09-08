@@ -2,6 +2,7 @@ import typing as _typ
 
 import pexpect as _pexpect
 
+from . import exceptions as _exceptions
 from . import helpers as _helpers
 
 
@@ -211,12 +212,22 @@ class JdbProcess(object):
         self.pty.sendline("step{}".format(modifier))
 
         # Collect location
-        self.pty.expect(r"((Step completed:|Method entered:\r\nStep completed:|Method entered: )|Method exited: [^,]+, )[^\r\n]+\r\n([^\r\n]+\r\n)*")
+        try:
+            self.pty.expect(_helpers.REGEXP_PATT_STEP_EXPECT)
+
+        except _pexpect.EOF as e:
+            e.__class__ = _exceptions.JdbHostExitedException
+            raise e
+
+        except _pexpect.TIMEOUT as e:
+            e.__class__ = _exceptions.JdbException
+            raise e
 
         info = _helpers.parse_jdb_step(self.pty.after)
-        if len(info) == 0:
-            print("Error")
-            print(self.pty.after)
+        if info is None or len(info) == 0:
+            # print("Error")
+            # print(self.pty.after)
+            raise _exceptions.JdbHostErrorException("Unexpected error: '{}'".format(self.pty.after))
 
         # Detect if method was just called and fill calling information if so
         if "Method entered" in self.pty.before:
@@ -245,17 +256,6 @@ class JdbProcess(object):
         # Print out all local variables
         self.pty.sendline("locals")
 
-        # ATTEMPT 1:
-        # # Expect the variables from method arguments
-        #self.pty.expect("Method arguments:")
-        #
-        # # Expect the variables locally declared
-        #self.pty.expect("Local variables:")
-
-        # ATTEMPT 2:
-        #self.pty.expect("(No local variables|.*ocal variable information not available.*|Method arguments:.*Local variables:)")
-
-        # ATTEMPT 3:
         # Expect the variables from method arguments (or a message that we don't have
         # debug information for this frame).
         self.pty.expect(

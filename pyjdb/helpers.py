@@ -16,6 +16,10 @@ REGEXP_PATT_CSV = r"\".*?\"|'.*?'|[^,]+"
 # See below for information on string patterns of jdb output
 # https://github.com/openjdk/jdk/blob/master/src/jdk.jdi/share/classes/com/sun/tools/example/debug/tty/TTYResources.java
 
+REGEXP_PATT_STEP_EXPECT = (r"(Exception occurred:|((Step completed:|Method entered:\r\n"
+                           r"Step completed:|Method entered: )"
+                           r"|Method exited: [^,]+, ))[^\r\n]+\r\n([^\r\n]+\r\n)*")
+
 REGEXP_PATT_STEP_COMPLETED = (r"(Step completed:|Method entered:|"
                               r"Method exited: return value = ([^,]+),) "
                               r"\"thread=([^\"]*)\", "
@@ -214,6 +218,12 @@ def parse_jdb_step(text: str) -> _typ.Dict[str, _typ.Any]:
     :param text:
     :return:
     """
+    # Currently we don't extract information on exceptions
+    # (Exception occurred: java.lang.ArrayIndexOutOfBoundsException
+    #  (uncaught)"thread=main", Ordered.main(), line=20 bci=9)
+    if "Exception occurred:" in text:
+        return None
+
     info = {}
 
     # Use regular expressions to parse data
