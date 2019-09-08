@@ -15,3 +15,5 @@ License: Copyright (c) 2019 Jérémie Lumbroso, under LGPL3 license
 from pyjdb.core.jdb_process import JdbProcess
 
 from pyjdb.core.exceptions import *
+
+from pyjdb.inspect.process import *

@@ -114,6 +114,23 @@ class JdbProcess(object):
             launch_class=True,
         )
 
+    def close(self):
+        if self.pty is not None:
+            # noinspection PyBroadException
+            try:
+                self.pty.close()
+            except:
+                pass
+
+        if self.target is not None:
+            # noinspection PyBroadException
+            try:
+                self.target.close()
+            except:
+                pass
+            finally:
+                self.target = None
+
     def spawn(self, args: _typ.Optional[str] = None, capture_target=False) -> _typ.NoReturn:
         """
 
@@ -121,19 +138,8 @@ class JdbProcess(object):
         :return:
         """
 
-        # noinspection PyBroadException
-        try:
-            self.pty.close()
-        except:
-            pass
-
-        # noinspection PyBroadException
-        try:
-            self.target.close()
-        except:
-            pass
-        finally:
-            self.target = None
+        # In case we have a live process going: Terminate it
+        self.close()
 
         if capture_target:
             # Pick a port
@@ -198,7 +204,7 @@ class JdbProcess(object):
             if len(self.trace) > self.trace_max:
                 self.trace = self.trace[-self.trace_max:]
 
-    def step(self, modifier=" in") -> _typ.Dict[str, _typ.Any]:
+    def step(self, modifier: str = " in", include_locals: bool = False) -> _typ.Dict[str, _typ.Any]:
         """
 
         :return:
@@ -228,13 +234,18 @@ class JdbProcess(object):
             # print(self.pty.after)
             raise _exceptions.JdbHostErrorException("Unexpected error: '{}'".format(self.pty.after))
 
-        # Detect if method was just called and fill calling information if so
-        if "Method entered" in self.pty.before:
-            loc = self.locals()
+        # Obtain local variables (or attempt to)
+        loc = self.locals()
 
-            if loc is not None:
-                args, _ = loc
+        if loc is not None:
+            args, vars = loc
+
+            # Detect if method was just called and fill calling information if so
+            if "Method entered" in self.pty.before and args is not None:
                 info["call"] = args
+
+            if include_locals and vars is not None:
+                info["locals"] = vars
 
         # Add to record
         self._append_trace_history(info)
